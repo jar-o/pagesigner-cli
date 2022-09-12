@@ -122,6 +122,7 @@ async function createNewSession(host, request, response, date, pgsg, is_imported
         sessDir = Path.join(process.env.SESSDIR, 'saved_sessions', date + "_" + host + suffix)
     }
     sessDir = scrubPath(sessDir)
+    clog('Session dir: ' + sessDir)
     fs.mkdirSync(sessDir, { recursive: true });   
     fs.writeFileSync(Path.join(sessDir, "request"), request)
     fs.writeFileSync(Path.join(sessDir, "response"), response)
@@ -140,13 +141,21 @@ function showUsage(){
     console.log("\r\n")
     process.exit(0)
 }
+function setCacheDir() {
+    var cacheDir Path.join(__dirname, 'cache')
+    if (process.env.SESSDIR) {
+        cacheDir = Path.join(process.env.SESSDIR, 'cache')
+    }
+    clog('Cache dir: ' + cacheDir)
+    return cacheDir
+}
 
 async function setupNotary(){
     const m = new Main();
     if (globals.useNotaryNoSandbox){
         return await m.queryNotaryNoSandbox(globals.defaultNotaryIP);
     } else {
-        const cacheDir = Path.join(__dirname, 'cache')
+        var cacheDir = setCacheDir()
         const tnPath = Path.join(cacheDir, 'trustedNotary')
         if (fs.existsSync(tnPath)) {
             // load notary from disk
@@ -184,7 +193,7 @@ async function main (){
             showUsage();
         }
 
-        const cacheDir = Path.join(__dirname, 'cache')
+        var cacheDir = setCacheDir()
         if (! fs.existsSync(cacheDir)) {fs.mkdirSync(cacheDir)};   
         const psPath = Path.join(cacheDir, 'parsedCircuits')
         const gbPath = Path.join(cacheDir, 'gatesBlob')
