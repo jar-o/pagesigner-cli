@@ -106,17 +106,28 @@ CASM.parseAndAssemble = function(file){
     return CASM.parseAndAssembleOld(fullpath)
 }
 
+function clog(msg) {
+    console.log('# ' + msg)
+}
+
+function scrubPath(path) {
+    return path.replace(/ /g, '__').replace(/\)|\(/g, '').replace(/:/g, '_').replace(/,/, '_')
+}
 
 async function createNewSession(host, request, response, date, pgsg, is_imported=false){
     const suffix = is_imported ? "_imported" : ""
-    const sessDir = Path.join(__dirname, 'saved_sessions', date + "_" + host + suffix) 
+    var sessDir = Path.join(__dirname, 'saved_sessions', date + "_" + host + suffix)
+    if (process.env.SESSDIR) {
+        clog('Using custom session directory')
+        sessDir = Path.join(process.env.SESSDIR, 'saved_sessions', date + "_" + host + suffix)
+    }
+    sessDir = scrubPath(sessDir)
     fs.mkdirSync(sessDir, { recursive: true });   
     fs.writeFileSync(Path.join(sessDir, "request"), request)
     fs.writeFileSync(Path.join(sessDir, "response"), response)
-    fs.writeFileSync(Path.join(sessDir, date+".pgsg"), Buffer.from(JSON.stringify(pgsg)))
+    fs.writeFileSync(Path.join(sessDir, scrubPath(date+".pgsg")), Buffer.from(JSON.stringify(pgsg)))
     return sessDir
 }
-
 
 function showUsage(){
     console.log("Usage: ./pgsg-node.js <command> [options] \r\n")
@@ -142,7 +153,7 @@ async function setupNotary(){
             const obj = JSON.parse(fs.readFileSync(tnPath))
             obj['URLFetcherDoc'] = b64decode(obj['URLFetcherDoc'])
             console.log('Using cached notary from ', tnPath)
-            console.log('Notary IP address: ', obj.IP);
+            console.log('Notary IP address: ', obj.IP)
             return obj
         } else {
             // fetch and verify the URLFetcher doc
@@ -199,7 +210,8 @@ async function main (){
         await parse_certs(fs.readFileSync(rootStorePath).toString());
 
         const server = argv[3]
-        const headersfile = Path.join(__dirname, argv[5])
+        // const headersfile = Path.join(__dirname, argv[5])
+        const headersfile = argv[5];
        
         // split into lines keeping the delimiter at the end of each line
         const lines = fs.readFileSync(headersfile).toString().split(/(?<=\r\n|\n)/);
@@ -246,6 +258,7 @@ async function main (){
         const pgsgBuf = fs.readFileSync(argv[3])
         const serializedPgsg = JSON.parse(pgsgBuf)
         const m = new Main();
+        m.trustedOracle = await setupNotary();
         const pgsg = m.deserializePgsg(serializedPgsg);
         // prepare root store certificates
         const rootStorePath = Path.join(__dirname, 'pagesigner', 'core', 'third-party', 'certs.txt')
