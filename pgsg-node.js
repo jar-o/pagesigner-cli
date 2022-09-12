@@ -142,7 +142,7 @@ function showUsage(){
     process.exit(0)
 }
 function setCacheDir() {
-    var cacheDir Path.join(__dirname, 'cache')
+    var cacheDir = Path.join(__dirname, 'cache')
     if (process.env.SESSDIR) {
         cacheDir = Path.join(process.env.SESSDIR, 'cache')
     }
