@@ -241,6 +241,7 @@ async function main (){
         if (! blankLineWasFound){
             headers += '\r\n'
         }
+        console.log(headers)
 
         const m = new Main();
         m.trustedOracle = await setupNotary();
